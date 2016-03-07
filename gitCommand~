@@ -1,0 +1,12 @@
+ssh-keygen -C 'lin-bao-wei@hotmail.com' -t rsa
+gedit .ssh/id_rsa.pub
+github-->setting-->SSH keys-->new ssh key
+
+ssh-add ~/.ssh/id_rsa
+ssh -T git@github.com
+git config --global user.name "linbaowei"
+git config --global user.email lin-bao-wei@hotmail.com
+
+git add
+git commit
+git push

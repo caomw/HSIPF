@@ -1,0 +1,18 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/linbaowei/workspace/HSIPF.git/HSIPF.cpp
+HSIPF.h
+/home/linbaowei/workspace/HSIPF.git/HSIPF.h
+
+/home/linbaowei/workspace/HSIPF.git/HSIPF.h
+
+/home/linbaowei/workspace/HSIPF.git/main.cpp
+iostream
+-
+
