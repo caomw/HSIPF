@@ -45,8 +45,9 @@ public:
   pcl::PointCloud<PointType> readPointCloud(string pointcloudFileName);
   pcl::PointCloud<pcl::Normal> calculateNormal(pcl::PointCloud<PointType> pointcloud, 
 					       float radious);
-  float DotProduct(Eigen::Vector3f veca, 
+  float VectorAngle(Eigen::Vector3f veca, 
 		   Eigen::Vector3f vecb);
+  
   inline void HSIPFInputPointCloud(pcl::PointCloud<PointType> pointcloud);
   inline void HSIPFInputNormal(pcl::PointCloud<pcl::Normal> normal);
   inline void HSIPFSetupAngle(float angle);
@@ -68,6 +69,7 @@ void HSIPF::HSIPFInputNormal(pcl::PointCloud< pcl::Normal > normal)
 {
   this->normal = normal;
 }
+
 
 
 #endif // HSIPF_H
