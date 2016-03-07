@@ -18,12 +18,56 @@
 #ifndef HSIPF_H
 #define HSIPF_H
 
+#include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <iostream>
+using namespace std;
+
+#include "common.h"
+
+#include <omp.h>
+
+struct HSIPFFeature
+{
+  pcl::Histogram< DIM > descriptor;
+};
+
 class HSIPF
 {
 
+  float BoundaryAngle;
+  pcl::PointCloud<PointType> pointcloud;
+  pcl::PointCloud<pcl::Normal> normal;
+  
 public:
-HSIPF();
-virtual ~HSIPF();
+  HSIPF();
+  pcl::PointCloud<PointType> readPointCloud(string pointcloudFileName);
+  pcl::PointCloud<pcl::Normal> calculateNormal(pcl::PointCloud<PointType> pointcloud, 
+					       float radious);
+  float DotProduct(Eigen::Vector3f veca, 
+		   Eigen::Vector3f vecb);
+  inline void HSIPFInputPointCloud(pcl::PointCloud<PointType> pointcloud);
+  inline void HSIPFInputNormal(pcl::PointCloud<pcl::Normal> normal);
+  inline void HSIPFSetupAngle(float angle);
+  bool HSIPFCalculate(pcl::PointCloud< HSIPFFeature > & HSIPFDescriptor);
+  double computeCloudResolution(const pcl::PointCloud<PointType>::ConstPtr& cloud);
+  virtual ~HSIPF();
+  
 };
+
+void HSIPF::HSIPFSetupAngle(float angle)
+{
+  this->BoundaryAngle = angle;
+}
+void HSIPF::HSIPFInputPointCloud(pcl::PointCloud< PointType > pointcloud)
+{
+  this->pointcloud = pointcloud;
+}
+void HSIPF::HSIPFInputNormal(pcl::PointCloud< pcl::Normal > normal)
+{
+  this->normal = normal;
+}
+
 
 #endif // HSIPF_H
