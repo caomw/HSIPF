@@ -27,11 +27,12 @@ HSIPF::~HSIPF()
 
 }
 
-float HSIPF::DotProduct(Eigen::Vector3f veca, Eigen::Vector3f vecb)
+float HSIPF::VectorAngle(Eigen::Vector3f veca, Eigen::Vector3f vecb)
 {
  float noma = sqrt(veca[0]*veca[0]+veca[1]*veca[1]+veca[2]*veca[2]);
  float nomb = sqrt(vecb[0]*vecb[0]+vecb[1]*vecb[1]+vecb[2]*vecb[2]);
- return (veca[0]*vecb[0] + veca[1]*vecb[1] + veca[2]*vecb[2])/(noma*nomb);
+ float costheta = (veca[0]*vecb[0] + veca[1]*vecb[1] + veca[2]*vecb[2])/(noma*nomb);
+ return acos(costheta);
 }
 
 
