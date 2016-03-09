@@ -35,6 +35,14 @@ float HSIPF::VectorAngle(Eigen::Vector3f veca, Eigen::Vector3f vecb)
  return acos(costheta);
 }
 
+Eigen::Vector3f HSIPF::CorssProduct(Eigen::Vector3f veca, Eigen::Vector3f vecb)
+{
+  Eigen::Vector3f crossVec;
+  crossVec[0] = veca[1]*vecb[2] - vecb[1]*veca[2];
+  crossVec[1] = veca[2]*vecb[0] - vecb[2]*veca[0];
+  crossVec[2] = veca[0]*vecb[1] - vecb[0]*veca[1];
+  return crossVec;
+}
 
 double HSIPF::computeCloudResolution(const pcl::PointCloud<PointType>::ConstPtr& cloud)
 {
@@ -123,7 +131,7 @@ pcl::PointCloud< pcl::Normal > HSIPF::calculateNormal(pcl::PointCloud< PointType
   ne1.setSearchMethod (tree);
   // Use all neighbors in a sphere of radius 3cm
   ne1.setRadiusSearch (radious);
-  //ne1.setViewPoint (centerpoint1.x, centerpoint1.y, centerpoint1.z);	
+  //ne1.setViewPoint (centerpoint1.x, centerpoint1.y, centerpoint1.z);
   // Compute the features
   ne1.compute (normal);
   return normal;
@@ -131,5 +139,16 @@ pcl::PointCloud< pcl::Normal > HSIPF::calculateNormal(pcl::PointCloud< PointType
 
 bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 {
-  
+  omp_set_num_threads(2); 
+  #pragma omp parallel for
+  for(int i = 0; i < this->pointcloud.size(); ++i)
+  {
+    for(int j = 0; j < this->pointcloud.size(); ++j)
+    {
+      if(i!=j)
+      {
+	
+      }
+    }
+  }
 }

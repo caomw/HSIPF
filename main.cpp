@@ -1,11 +1,16 @@
 #include <iostream>
 #include <pcl/visualization/pcl_visualizer.h>
 #include "HSIPF.h"
+#include "ShpereBlocks.h"
 #include "common.h"
 using namespace std;
 
 int main(int argc, char ** argv)
 {
+  ShpereBlocks shpereblock;
+  shpereblock.TriangleBlocks();
+  return 1;
+  
   HSIPF hsipf;
   string pointcloudFileName = argv[1];
   cout << "Loading point cloud File name: " << pointcloudFileName << endl;
@@ -13,17 +18,15 @@ int main(int argc, char ** argv)
   pointcloud1 = hsipf.readPointCloud(pointcloudFileName);
   pcl::PointCloud<pcl::Normal> pointcloudnormal1;
   //pointcloudnormal1 = hsipf.calculateNormal(pointcloud1, 0.02f);
-  pointcloudnormal1.resize(pointcloud1.size());
-  
-  
+  pointcloudnormal1.resize(pointcloud1.size()); 
   
   omp_set_num_threads(2); 
   #pragma omp parallel for
   for(int i = 0; i < pointcloud1.size(); ++i)
   {
-	  pointcloudnormal1.at(i).normal_x = pointcloud1.at(i).normal_x;
-	  pointcloudnormal1.at(i).normal_y = pointcloud1.at(i).normal_y;
-	  pointcloudnormal1.at(i).normal_z = pointcloud1.at(i).normal_z;
+    pointcloudnormal1.at(i).normal_x = pointcloud1.at(i).normal_x;
+    pointcloudnormal1.at(i).normal_y = pointcloud1.at(i).normal_y;
+    pointcloudnormal1.at(i).normal_z = pointcloud1.at(i).normal_z;
   }
 
   pcl::visualization::PCLVisualizer mainview("pointcloud");  

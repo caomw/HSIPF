@@ -48,6 +48,9 @@ public:
   float VectorAngle(Eigen::Vector3f veca, 
 		   Eigen::Vector3f vecb);
   
+  Eigen::Vector3f CorssProduct(Eigen::Vector3f veca, 
+		   Eigen::Vector3f vecb);
+  
   inline void HSIPFInputPointCloud(pcl::PointCloud<PointType> pointcloud);
   inline void HSIPFInputNormal(pcl::PointCloud<pcl::Normal> normal);
   inline void HSIPFSetupAngle(float angle);
