@@ -14,10 +14,16 @@ ShpereBlocks::~ShpereBlocks()
 
 }
 
+float ShpereBlocks::vectorNorm(Eigen::Vector3f vec)
+{
+  return sqrt(vec[0]*vec[0]+vec[1]*vec[1]+vec[2]*vec[2]);
+}
+
+
 void ShpereBlocks::TriangleBlocks()
 {
   pcl::PointCloud<PointType> pointcloud1;
-  string pointcloudFileName = "/home/bwlin/workspace/HSIPF.git/build/sphere.ply";
+  string pointcloudFileName = "./sphere.ply";
   pointcloud1 = readPointCloud(pointcloudFileName);
   pcl::PointCloud<pcl::Normal> pointcloudnormal1;
   pointcloudnormal1.resize(pointcloud1.size());
@@ -103,7 +109,14 @@ void ShpereBlocks::TriangleBlocks()
 	    int pointcount = 0;
 	    for(int q = 0; q < triangles.size(); ++q)
 	    {
-	      if(abs(acos(triangles.at(q).second.dot(fromCenterToTriangleDis)/(triangles.at(q).second.norm()*fromCenterToTriangleDis.norm()))) < 0.1 && (triangles.at(q).second-fromCenterToTriangleDis).norm() < 0.001)
+	      double a = triangles.at(q).second.dot(fromCenterToTriangleDis);
+	      double b = vectorNorm(triangles.at(q).second)* vectorNorm(fromCenterToTriangleDis);
+	      double ratio = a/b;
+	      if(ratio > 1.0000000)
+		ratio = 0.999999999;
+	      if(ratio < -1.0000000)
+		ratio = -0.99999999;	      
+	      if(abs(acos(ratio)) < 0.001 && (triangles.at(q).second-fromCenterToTriangleDis).norm() < 0.001)
 	      {
 		pointcount ++;
 	      }

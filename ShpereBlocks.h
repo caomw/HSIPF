@@ -32,6 +32,7 @@ class ShpereBlocks
   pcl::PointCloud<PointType> readPointCloud(string pointcloudFileName);
 public:
   ShpereBlocks();
+  float vectorNorm(Eigen::Vector3f vec);
   void TriangleBlocks();
   
   ~ShpereBlocks();
