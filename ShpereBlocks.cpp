@@ -20,7 +20,7 @@ float ShpereBlocks::vectorNorm(Eigen::Vector3f vec)
 }
 
 
-void ShpereBlocks::TriangleBlocks()
+void ShpereBlocks::TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen::Vector3f > > & triangles)
 {
   pcl::PointCloud<PointType> pointcloud1;
   string pointcloudFileName = "./sphere.ply";
@@ -33,8 +33,7 @@ void ShpereBlocks::TriangleBlocks()
     pointcloudnormal1.at(i).normal_y = pointcloud1.at(i).normal_y;
     pointcloudnormal1.at(i).normal_z = pointcloud1.at(i).normal_z;
   }
-  vector< pair < vector <Eigen::Vector3f>, Eigen::Vector3f > > triangles;  //n triangles
-					   //3 points in one TriangleBlocks
+  
   triangles.resize(0);
 					   
   float minimumLength = 10e10f;
@@ -169,8 +168,16 @@ void ShpereBlocks::TriangleBlocks()
     //pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color2(centers.makeShared(), 255, 0, 0);
     //mainview.addPointCloud (centers.makeShared(), single_color2, s.str()+"centers");
     mainview.addText3D(s.str(),centers.at(0),0.05,1,1,1,s.str()+"text");
+       
   }
-		
+  pcl::PointXYZ pt1, pt2;
+  pt1.x = 0;
+  pt1.y = 0;
+  pt1.z = 0;
+  pt2.x = 0;
+  pt2.y = 1;
+  pt2.z = 0; 
+  mainview.addLine(pt1, pt2, "line");
   while (!mainview.wasStopped ())
   {
     mainview.spinOnce ();

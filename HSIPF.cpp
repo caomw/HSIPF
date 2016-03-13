@@ -17,6 +17,7 @@
 
 #include "HSIPF.h"
 
+
 HSIPF::HSIPF()
 {
 
@@ -27,15 +28,46 @@ HSIPF::~HSIPF()
 
 }
 
-float HSIPF::VectorAngle(Eigen::Vector3f veca, Eigen::Vector3f vecb)
+Eigen::Matrix<float, 3, 3> HSIPF::RotationAboutVector(Eigen::Vector3f rotationAxis, float theta)
 {
- float noma = sqrt(veca[0]*veca[0]+veca[1]*veca[1]+veca[2]*veca[2]);
- float nomb = sqrt(vecb[0]*vecb[0]+vecb[1]*vecb[1]+vecb[2]*vecb[2]);
- float costheta = (veca[0]*vecb[0] + veca[1]*vecb[1] + veca[2]*vecb[2])/(noma*nomb);
- return acos(costheta);
+  Eigen::Matrix<float, 3, 3> rotationMatrix;
+  float norm = rotationAxis.norm();
+  Eigen::Vector3f normlizedRotationAxis = rotationAxis / norm;
+  rotationMatrix(0, 0) = cos(theta)+normlizedRotationAxis(0)*normlizedRotationAxis(0)*(1-cos(theta));
+  rotationMatrix(0, 1) = normlizedRotationAxis(0)*normlizedRotationAxis(1)*(1-cos(theta))-normlizedRotationAxis(2)*sin(theta);
+  rotationMatrix(0, 2) = normlizedRotationAxis(1)*sin(theta)+normlizedRotationAxis(0)*normlizedRotationAxis(2)*(1-cos(theta));
+  
+  rotationMatrix(1, 0) = normlizedRotationAxis(2)*sin(theta)+normlizedRotationAxis(0)*normlizedRotationAxis(1)*(1-cos(theta));
+  rotationMatrix(1, 1) = cos(theta)+normlizedRotationAxis(1)*normlizedRotationAxis(1)*(1-cos(theta));
+  rotationMatrix(1, 2) = -normlizedRotationAxis(0)*sin(theta)+normlizedRotationAxis(1)*normlizedRotationAxis(2)*(1-cos(theta));
+  
+  rotationMatrix(2, 0) = -normlizedRotationAxis(1)*sin(theta)+normlizedRotationAxis(0)*normlizedRotationAxis(2)*(1-cos(theta));
+  rotationMatrix(2, 1) = normlizedRotationAxis(0)*sin(theta)+normlizedRotationAxis(1)*normlizedRotationAxis(2)*(1-cos(theta));
+  rotationMatrix(2, 2) = cos(theta)+normlizedRotationAxis(2)*normlizedRotationAxis(2)*(1-cos(theta));
+  
+  if(abs(rotationMatrix.determinant() - 1) < 0.0001)
+    return rotationMatrix;
+  else 
+  {
+    cerr << "the determinat of rotation matirx is not equal to 1, system exit(1)!!" << endl;
+    exit(1);
+  }
 }
 
-Eigen::Vector3f HSIPF::CorssProduct(Eigen::Vector3f veca, Eigen::Vector3f vecb)
+
+float HSIPF::VectorAngle(Eigen::Vector3f veca, Eigen::Vector3f vecb)
+{
+  float noma = sqrt(veca[0]*veca[0]+veca[1]*veca[1]+veca[2]*veca[2]);
+  float nomb = sqrt(vecb[0]*vecb[0]+vecb[1]*vecb[1]+vecb[2]*vecb[2]);
+  float costheta = (veca[0]*vecb[0] + veca[1]*vecb[1] + veca[2]*vecb[2])/(noma*nomb);
+  if(costheta > 1.0000000)
+  costheta = 0.999999999;
+  if(costheta < -1.0000000)
+  costheta = -0.99999999;	
+  return acos(costheta);
+}
+
+Eigen::Vector3f HSIPF::CrossProduct(Eigen::Vector3f veca, Eigen::Vector3f vecb)
 {
   Eigen::Vector3f crossVec;
   crossVec[0] = veca[1]*vecb[2] - vecb[1]*veca[2];
@@ -137,18 +169,201 @@ pcl::PointCloud< pcl::Normal > HSIPF::calculateNormal(pcl::PointCloud< PointType
   return normal;
 }
 
+pcl::PointCloud< PointType > HSIPF::getBoundaryPoints(PointType keypoint)
+{
+  pcl::PointCloud< PointType > boundaryPoints, newPointcloud;
+  pcl::PointCloud< PointType >::iterator iter, end;
+  newPointcloud = this->pointcloud;
+  Eigen::Vector3f keypointEig = keypoint.getArray3fMap();
+  Eigen::Vector3f keypointNormal = keypoint.getNormalVector3fMap();
+  for (iter = newPointcloud.begin(), end = newPointcloud.end(); iter != end; ++iter)
+  {      
+    PointType boundarypoint;
+    float mindis = 10e10;
+    bool pushflag = false;
+    Eigen::Vector3f boundaryPointsCand = iter->getArray3fMap();    
+    Eigen::Vector3f vectortmp = boundaryPointsCand - keypointEig;
+    Eigen::Vector3f pointNormal1 = iter->getNormalVector3fMap();
+    if(abs(VectorAngle(keypointNormal, pointNormal1) - this->BoundaryAngle) < 0.005)
+    {
+      pushflag = true;
+      boundarypoint.x = iter->getArray3fMap()(0);
+      boundarypoint.y = iter->getArray3fMap()(1);
+      boundarypoint.z = iter->getArray3fMap()(2);
+      boundarypoint.normal_x = iter->getNormalVector3fMap()(0);
+      boundarypoint.normal_y = iter->getNormalVector3fMap()(1);
+      boundarypoint.normal_z = iter->getNormalVector3fMap()(2);
+      
+      mindis = vectortmp.norm();
+      pcl::PointCloud< PointType >::iterator iter2, end2;
+      for (iter2 = newPointcloud.begin(), end2 = newPointcloud.end(); iter2 != end2; ++iter2)
+      { 	
+	Eigen::Vector3f boundaryPointsCand2 = iter2->getArray3fMap();
+	Eigen::Vector3f vectortmp2 = boundaryPointsCand2 - keypointEig;
+	Eigen::Vector3f pointNormal = iter2->getNormalVector3fMap();
+	if(VectorAngle(vectortmp, vectortmp2) < 0.0001)
+	{
+	  if(abs(VectorAngle(keypointNormal, pointNormal) - this->BoundaryAngle) < 0.005)
+	  {	    
+	    if(vectortmp2.norm() < mindis)
+	    {
+	      boundarypoint.x = boundaryPointsCand2(0);
+	      boundarypoint.y = boundaryPointsCand2(1);
+	      boundarypoint.z = boundaryPointsCand2(2);
+	      boundarypoint.normal_x = pointNormal(0);
+	      boundarypoint.normal_y = pointNormal(1);
+	      boundarypoint.normal_z = pointNormal(2);
+	      mindis = vectortmp2.norm();
+	    }
+	  }
+	  newPointcloud.erase(iter2);
+	}    
+      }          
+    }  
+    newPointcloud.erase(iter);
+    if(pushflag)
+      boundaryPoints.push_back(boundarypoint);
+    if(newPointcloud.size() == 0)
+      break;
+    //cerr << newPointcloud.size() << " " << boundaryPoints.size() << endl;
+  }
+  return boundaryPoints;
+}
+
+
 bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 {
-  omp_set_num_threads(2); 
-  #pragma omp parallel for
-  for(int i = 0; i < this->pointcloud.size(); ++i)
+  pcl::visualization::PCLVisualizer mainview("pointcloud");  
+  mainview.setPosition(0,0);	
+  mainview.setBackgroundColor(0.9, 0.9, 0.9);
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color(this->pointcloud.makeShared(), 108, 166, 205);
+  mainview.addPointCloud (this->pointcloud.makeShared(), single_color, "newpointcloud1");
+  Eigen::Vector3f pt1, pt2;
+  
+  vector< pair < vector <Eigen::Vector3f>, Eigen::Vector3f > >  trianglePoints, newtrianglePoints;
+  ShpereBlocks shpereblock;
+  shpereblock.TriangleBlocks(trianglePoints);  
+  newtrianglePoints = trianglePoints;
+  float alpha = PI/30;
+  int K = PI/3/alpha;  
+  for(int i = 0; i < this->keypoints.size(); ++i)
   {
-    for(int j = 0; j < this->pointcloud.size(); ++j)
+    vector< pcl::PointCloud<PointType> > pointsinTrianle(trianglePoints.size() * K);   //boundary points in each triangle
+    pcl::PointCloud< PointType > boundaryPoints = getBoundaryPoints(keypoints.at(i));    
+    Eigen::Vector3f SO;
+    SO << 0, 1, 0;
+    Eigen::Vector3f PN = this->normal.at(i).getNormalVector3fMap();
+    Eigen::Vector3f SOcrossPN = CrossProduct(SO, PN);
+    //cerr << SOcrossPN << endl;
+    float thetaSOPN = VectorAngle(SO, PN);
+    //cerr << thetaSOPN << endl;
+    Eigen::Matrix<float, 3, 3> roMatAboutSOcrossPN = RotationAboutVector(SOcrossPN, thetaSOPN);   
+
+    Eigen::Vector3f translation = keypoints.at(i).getArray3fMap();
+    //omp_set_num_threads(2);
+    //#pragma omp parallel for
+    for(int j = 0; j < K; ++j)
     {
-      if(i!=j)
+      stringstream sk;
+      sk << j;
+      Eigen::Matrix<float, 3, 3> roMatAboutPN = RotationAboutVector(PN, j*alpha);
+      for(int indt = 0; indt < trianglePoints.size(); ++indt)
       {
+	newtrianglePoints.at(indt).first.at(0) = (roMatAboutPN*roMatAboutSOcrossPN*trianglePoints.at(indt).first.at(0)+translation);
+	newtrianglePoints.at(indt).first.at(1) = (roMatAboutPN*roMatAboutSOcrossPN*trianglePoints.at(indt).first.at(1)+translation);
+	newtrianglePoints.at(indt).first.at(2) = (roMatAboutPN*roMatAboutSOcrossPN*trianglePoints.at(indt).first.at(2)+translation);
+	newtrianglePoints.at(indt).second = roMatAboutPN*roMatAboutSOcrossPN*trianglePoints.at(indt).second+translation;
 	
+	pt1 = translation;
+	pt2 << 0, 1, 0;
+	pt2 = roMatAboutPN*roMatAboutSOcrossPN*pt2+translation;
+	
+	stringstream sindt;
+	sindt << indt;
+	pcl::PointXYZ ppt1, ppt2;
+	ppt1.x = pt1(0);
+	ppt1.y = pt1(1);
+	ppt1.z = pt1(2);
+	ppt2.x = pt2(0);
+	ppt2.y = pt2(1);
+	ppt2.z = pt2(2);
+	mainview.addLine(ppt1, ppt2, sk.str()+sindt.str()+"line");      
+      }
+       
+      for(int indn = 0; indn < newtrianglePoints.size(); ++ indn)
+      {
+	pcl::PointCloud<PointType> pointcloudtmp,centers;
+	pointcloudtmp.resize(3);
+	pointcloudtmp.at(0).x = newtrianglePoints.at(indn).first.at(0)[0];
+	pointcloudtmp.at(0).y = newtrianglePoints.at(indn).first.at(0)[1];
+	pointcloudtmp.at(0).z = newtrianglePoints.at(indn).first.at(0)[2];
+	pointcloudtmp.at(1).x = newtrianglePoints.at(indn).first.at(1)[0];
+	pointcloudtmp.at(1).y = newtrianglePoints.at(indn).first.at(1)[1];
+	pointcloudtmp.at(1).z = newtrianglePoints.at(indn).first.at(1)[2];
+	pointcloudtmp.at(2).x = newtrianglePoints.at(indn).first.at(2)[0];
+	pointcloudtmp.at(2).y = newtrianglePoints.at(indn).first.at(2)[1];
+	pointcloudtmp.at(2).z = newtrianglePoints.at(indn).first.at(2)[2];
+	
+	centers.resize(1);
+	centers.at(0).x = newtrianglePoints.at(indn).second[0];
+	centers.at(0).y = newtrianglePoints.at(indn).second[1];
+	centers.at(0).z = newtrianglePoints.at(indn).second[2];
+	
+	stringstream sindn;
+	sindn << indn;
+	pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color(pointcloudtmp.makeShared(), 0, 0, 0);
+	mainview.addPointCloud (pointcloudtmp.makeShared(), single_color, sk.str()+sindn.str()+"points");
+	mainview.addText3D(sindn.str(),centers.at(0),0.05,1,1,1,sk.str()+sindn.str()+"text");	
+      }  
+      
+      for(int indn = 0; indn < newtrianglePoints.size(); ++ indn)
+      {
+	Eigen::Vector3f point1, point2, point3;
+	point1 = newtrianglePoints.at(indn).first.at(0);
+	point2 = newtrianglePoints.at(indn).first.at(1);
+	point3 = newtrianglePoints.at(indn).first.at(2);
+	Eigen::Vector3f O;
+	Eigen::Vector3f M = keypoints.at(i).getVector3fMap();
+	for(int indb = 0; indb < boundaryPoints.size(); ++indb)
+	{
+	  
+	  Eigen::Vector3f Vp = CrossProduct(point2-point1, point3-point1);
+	  Eigen::Vector3f N = point1;
+	  Eigen::Vector3f Vl = boundaryPoints.at(indb).getVector3fMap() - M;
+	  
+	  float t = ((Vp.transpose() * (N-M)) / (Vp.transpose() * Vl)) [0];
+	  O(0) = M(0)+Vl(0)*t;
+	  O(1) = M(1)+Vl(1)*t;
+	  O(2) = M(2)+Vl(2)*t;
+	  
+	  if(abs(VectorAngle(point1-O, point2-O) + VectorAngle(point2-O, point3-O) + VectorAngle(point1-O, point3-O) - 2*PI) < 0.0001)
+	  {
+	    pointsinTrianle.at(j*trianglePoints.size() + indn).push_back(boundaryPoints.at(indb));
+	  }
+	}	
+      }      
+    }
+//     while (!mainview.wasStopped ())
+//     {
+//       mainview.spinOnce ();
+//     }
+    
+    for(int indpt = 0; indpt < pointsinTrianle.size(); ++indpt)
+    {
+      if(pointsinTrianle.at(indpt).size() > 3)
+      {
+	pcl::PCA<PointType> pca;
+	pca.setInputCloud(pointsinTrianle.at(indpt).makeShared());
+	Eigen::Vector3f eigenvalues = pca.getEigenValues();
+	Eigen::Matrix3f eigenvectors = pca.getEigenVectors();
+	cout << eigenvectors << endl;
+	cout << eigenvalues << endl;
+      }     
+      if(pointsinTrianle.at(indpt).size() <= 3)
+      {
+	cout << indpt << endl;
       }
     }
+    exit(1);
   }
 }

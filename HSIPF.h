@@ -25,8 +25,11 @@
 using namespace std;
 
 #include "common.h"
-
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include <omp.h>
+#include <pcl/common/pca.h>
+#include "ShpereBlocks.h"
 
 struct HSIPFFeature
 {
@@ -38,6 +41,7 @@ class HSIPF
 
   float BoundaryAngle;
   pcl::PointCloud<PointType> pointcloud;
+  pcl::PointCloud<PointType> keypoints;
   pcl::PointCloud<pcl::Normal> normal;
   
 public:
@@ -48,14 +52,17 @@ public:
   float VectorAngle(Eigen::Vector3f veca, 
 		   Eigen::Vector3f vecb);
   
-  Eigen::Vector3f CorssProduct(Eigen::Vector3f veca, 
+  Eigen::Vector3f CrossProduct(Eigen::Vector3f veca, 
 		   Eigen::Vector3f vecb);
   
   inline void HSIPFInputPointCloud(pcl::PointCloud<PointType> pointcloud);
+  inline void HSIPFInputKeypoint(pcl::PointCloud<PointType> keypoints);
   inline void HSIPFInputNormal(pcl::PointCloud<pcl::Normal> normal);
   inline void HSIPFSetupAngle(float angle);
   bool HSIPFCalculate(pcl::PointCloud< HSIPFFeature > & HSIPFDescriptor);
   double computeCloudResolution(const pcl::PointCloud<PointType>::ConstPtr& cloud);
+  Eigen::Matrix<float, 3, 3> RotationAboutVector(Eigen::Vector3f rotationAxis, float theta);
+  pcl::PointCloud<PointType> getBoundaryPoints(PointType keypoint);
   virtual ~HSIPF();
   
 };
@@ -72,6 +79,12 @@ void HSIPF::HSIPFInputNormal(pcl::PointCloud< pcl::Normal > normal)
 {
   this->normal = normal;
 }
+
+void HSIPF::HSIPFInputKeypoint(pcl::PointCloud< PointType > keypoints)
+{
+  this->keypoints = keypoints;
+}
+
 
 
 

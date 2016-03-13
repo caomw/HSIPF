@@ -33,7 +33,7 @@ class ShpereBlocks
 public:
   ShpereBlocks();
   float vectorNorm(Eigen::Vector3f vec);
-  void TriangleBlocks();
+  void TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen::Vector3f > >& triangles);
   
   ~ShpereBlocks();
 };

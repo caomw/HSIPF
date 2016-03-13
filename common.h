@@ -3,4 +3,4 @@
 
 typedef pcl::PointXYZRGBNormal PointType;
 #define DIM 20
-  
+#define PI 3.1415926

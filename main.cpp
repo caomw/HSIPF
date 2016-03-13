@@ -7,10 +7,6 @@ using namespace std;
 
 int main(int argc, char ** argv)
 {
-  ShpereBlocks shpereblock;
-  shpereblock.TriangleBlocks();
-  return 1;
-  
   HSIPF hsipf;
   string pointcloudFileName = argv[1];
   cout << "Loading point cloud File name: " << pointcloudFileName << endl;
@@ -40,6 +36,50 @@ int main(int argc, char ** argv)
   {
     mainview.spinOnce ();
   } 	
+  
+  
+  pcl::PointCloud< HSIPFFeature > HSIPFDescriptor;
+  hsipf.HSIPFInputNormal(pointcloudnormal1);
+  hsipf.HSIPFInputPointCloud(pointcloud1);
+  hsipf.HSIPFInputKeypoint(pointcloud1);
+  hsipf.HSIPFSetupAngle(PI/2);
+  pcl::PointCloud< PointType > boundaryPoints = hsipf.getBoundaryPoints(pointcloud1.at(0));
+  hsipf.HSIPFCalculate(HSIPFDescriptor);
+  
+  
+  
+  /**
+   *   \note check boundary points 
+   */
+  /*pcl::visualization::PCLVisualizer mainviewboundaryPoints("boundaryPoints");  
+  mainviewboundaryPoints.setPosition(0,0);	
+  mainviewboundaryPoints.setBackgroundColor(0.9, 0.9, 0.9);
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> single_colorboundaryPoints(boundaryPoints.makeShared(), 108, 166, 205);
+  mainviewboundaryPoints.addPointCloud (boundaryPoints.makeShared(), single_colorboundaryPoints, "newpointcloud1");  
+  pcl::PointCloud< PointType > onekeypoint;
+  onekeypoint.push_back(pointcloud1.at(0));
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> keypointcolor(onekeypoint.makeShared(), 0, 0, 0);
+  pcl::PointCloud<pcl::Normal> pointcloudnormal2,pointcloudnormal3;
+  pointcloudnormal2.resize(boundaryPoints.size()); 
+  for(int i = 0; i < boundaryPoints.size(); ++i)
+  {
+    pointcloudnormal2.at(i).normal_x = boundaryPoints.at(i).normal_x;
+    pointcloudnormal2.at(i).normal_y = boundaryPoints.at(i).normal_y;
+    pointcloudnormal2.at(i).normal_z = boundaryPoints.at(i).normal_z;
+  }
+  pointcloudnormal3.resize(1);
+  pointcloudnormal3.at(0).normal_x = pointcloud1.at(0).normal_x;
+  pointcloudnormal3.at(0).normal_y = pointcloud1.at(0).normal_y;
+  pointcloudnormal3.at(0).normal_z = pointcloud1.at(0).normal_z;
+  mainviewboundaryPoints.addPointCloud (onekeypoint.makeShared(), keypointcolor, "keypointcolor"); 
+  mainviewboundaryPoints.addPointCloudNormals<PointType, pcl::Normal>(boundaryPoints.makeShared(), pointcloudnormal2.makeShared(), 1, 0.05, "normal2");
+  mainviewboundaryPoints.addPointCloudNormals<PointType, pcl::Normal>(onekeypoint.makeShared(), pointcloudnormal3.makeShared(), 1, 0.5, "normal3");
+  while (!mainviewboundaryPoints.wasStopped ())
+  {
+    mainviewboundaryPoints.spinOnce ();
+  } 	
+  */
+  
   
   return 1;
 }
