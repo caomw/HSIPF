@@ -178,10 +178,10 @@ void ShpereBlocks::TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen
   pt2.y = 1;
   pt2.z = 0; 
   mainview.addLine(pt1, pt2, "line");
-  while (!mainview.wasStopped ())
-  {
+//   while (!mainview.wasStopped ())
+//   {
     mainview.spinOnce ();
-  } 	
+//   } 	
 }
 
 

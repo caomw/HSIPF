@@ -184,7 +184,7 @@ pcl::PointCloud< PointType > HSIPF::getBoundaryPoints(PointType keypoint)
     Eigen::Vector3f boundaryPointsCand = iter->getArray3fMap();    
     Eigen::Vector3f vectortmp = boundaryPointsCand - keypointEig;
     Eigen::Vector3f pointNormal1 = iter->getNormalVector3fMap();
-    if(abs(VectorAngle(keypointNormal, pointNormal1) - this->BoundaryAngle) < 0.005)
+    if(abs(VectorAngle(keypointNormal, pointNormal1) - this->BoundaryAngle) < 0.01)
     {
       pushflag = true;
       boundarypoint.x = iter->getArray3fMap()(0);
@@ -203,7 +203,7 @@ pcl::PointCloud< PointType > HSIPF::getBoundaryPoints(PointType keypoint)
 	Eigen::Vector3f pointNormal = iter2->getNormalVector3fMap();
 	if(VectorAngle(vectortmp, vectortmp2) < 0.0001)
 	{
-	  if(abs(VectorAngle(keypointNormal, pointNormal) - this->BoundaryAngle) < 0.005)
+	  if(abs(VectorAngle(keypointNormal, pointNormal) - this->BoundaryAngle) < 0.01)
 	  {	    
 	    if(vectortmp2.norm() < mindis)
 	    {
@@ -347,23 +347,73 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 //     {
 //       mainview.spinOnce ();
 //     }
+
     
+    pcl::PointCloud<PointType> allpoints;
+    HSIPFFeature his;
+    float hisNorm = 0;
+    for(int indhis = 0; indhis < DIM; ++indhis)
+    {
+      his.descriptor.histogram[indhis] = 0;
+    }
     for(int indpt = 0; indpt < pointsinTrianle.size(); ++indpt)
     {
-      if(pointsinTrianle.at(indpt).size() > 3)
+//       pcl::visualization::PCLVisualizer view2("pointcloud1");  
+//       view2.setPosition(0,0);	
+//       view2.setBackgroundColor(0.9, 0.9, 0.9);
+//       pcl::PointCloud<PointType> onekeypoint;
+//       onekeypoint.push_back(keypoints.at(i));
+//       pcl::visualization::PointCloudColorHandlerCustom<PointType> single_colorview3(onekeypoint.makeShared(), 0,0,0);
+//       view2.addPointCloud (onekeypoint.makeShared(), single_colorview3, "keypoint");
+      if(pointsinTrianle.at(indpt).size() > 5)  //5 could be a problem,
       {
+	//cout << pointsinTrianle.at(indpt).at(0).getVector3fMap()<< endl;
+	//cout << pointsinTrianle.at(indpt).at(1).getVector3fMap()<< endl;
+	//cout << pointsinTrianle.at(indpt).at(2).getVector3fMap()<< endl;
 	pcl::PCA<PointType> pca;
 	pca.setInputCloud(pointsinTrianle.at(indpt).makeShared());
 	Eigen::Vector3f eigenvalues = pca.getEigenValues();
 	Eigen::Matrix3f eigenvectors = pca.getEigenVectors();
-	cout << eigenvectors << endl;
-	cout << eigenvalues << endl;
-      }     
-      if(pointsinTrianle.at(indpt).size() <= 3)
+	Eigen::Vector3f keypointNormal = keypoints.at(i).getNormalVector3fMap();
+	//cout << eigenvectors << endl;
+	//cout << eigenvalues << endl;
+	Eigen::Vector3f V1 = eigenvectors.col(0);
+	Eigen::Vector3f V2 = eigenvectors.col(1);
+	Eigen::Vector3f V3 = eigenvectors.col(2);
+	if((eigenvalues(0) + eigenvalues(1))/(eigenvalues(0) + eigenvalues(1) + eigenvalues(2))>0.95) //the first and second princeple have almost all of the information
+	{
+	  float AngV1On = VectorAngle(V1,keypointNormal);
+	  float AngV2On = VectorAngle(V2,keypointNormal);
+	  his.descriptor.histogram[int(AngV1On/alpha)] ++;
+	  his.descriptor.histogram[int(AngV2On/alpha)] ++;
+	}
+	
+	stringstream sindn;
+	sindn << indpt;
+	//cerr << sindn.str() << endl;
+	
+// 	for(int tmpi = 0; tmpi < pointsinTrianle.at(indpt).size(); ++tmpi)
+// 	  allpoints.push_back(pointsinTrianle.at(indpt).at(tmpi));
+// 	pcl::visualization::PointCloudColorHandlerCustom<PointType> single_colorview2(allpoints.makeShared(), 108*indpt%255, 166*indpt%255, 205*indpt%255);
+// 	view2.addPointCloud (allpoints.makeShared(), single_colorview2, sindn.str()+"newpointcloud1");
+      } 
+      /*while (!view2.wasStopped ())
       {
-	cout << indpt << endl;
-      }
+	view2.spinOnce ();
+      }  */    
     }
+    for(int indhis = 0; indhis < DIM; ++indhis)
+    {
+      hisNorm += his.descriptor.histogram[indhis] * his.descriptor.histogram[indhis];      
+    }
+    hisNorm = sqrt(hisNorm);
+    for(int indhis = 0; indhis < DIM; ++indhis)
+    {
+      his.descriptor.histogram[indhis]/=hisNorm;
+      cout << his.descriptor.histogram[indhis] << " ";
+    }
+    cout << endl;
+    HSIPFDescriptor.push_back(his);
     exit(1);
   }
 }

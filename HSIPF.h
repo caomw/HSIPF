@@ -21,6 +21,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/features/normal_3d_omp.h>
+#include <pcl/visualization/histogram_visualizer.h>
 #include <iostream>
 using namespace std;
 

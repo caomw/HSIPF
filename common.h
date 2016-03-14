@@ -2,5 +2,5 @@
 #include <pcl/io/ply_io.h>
 
 typedef pcl::PointXYZRGBNormal PointType;
-#define DIM 20
+#define DIM 30  //180/6
 #define PI 3.1415926
