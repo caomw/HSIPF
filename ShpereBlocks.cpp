@@ -23,8 +23,7 @@ float ShpereBlocks::vectorNorm(Eigen::Vector3f vec)
 void ShpereBlocks::TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen::Vector3f > > & triangles)
 {
   pcl::PointCloud<PointType> pointcloud1;
-  string pointcloudFileName = "./sphere.ply";
-  pointcloud1 = readPointCloud(pointcloudFileName);
+  pointcloud1 = readPointCloud(this->sphereModel);
   pcl::PointCloud<pcl::Normal> pointcloudnormal1;
   pointcloudnormal1.resize(pointcloud1.size());
   for(int i = 0; i < pointcloud1.size(); ++i)
@@ -58,7 +57,14 @@ void ShpereBlocks::TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen
     }
   }  
   cerr << minimumLength << endl;
-  
+  if(this->sphereModel == "./sphere.ply")
+  {
+    edgelength = 0.62;
+  }
+  if(this->sphereModel == "./spheresmall.ply")
+  {
+    edgelength = 1.1;
+  }
   //omp_set_num_threads(8); 
   //#pragma omp parallel for
   for(int i = 0; i < pointcloud1.size(); ++i)
@@ -90,7 +96,7 @@ void ShpereBlocks::TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen
 // 	     cout <<count << ":" << edge1 << "\t" << edge2 << "\t" << edge3 << endl;
 // 	      count ++;
 // 	  }
-	  if(edge1  < 0.62  && edge2 < 0.62 && edge3 < 0.62)
+	  if(edge1  < edgelength  && edge2 < edgelength && edge3 < edgelength)
 	  {
 	    Eigen::Vector3f fromCenterToTriangleDis;
 	    fromCenterToTriangleDis = (vector3ftmp1 + vector3ftmp2 + vector3ftmp3)/3;
@@ -138,39 +144,39 @@ void ShpereBlocks::TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen
   }
   
   cout << triangles.size() << endl;
-  pcl::visualization::PCLVisualizer mainview("pointcloud");  
-  mainview.setPosition(0,0);	
-  mainview.setBackgroundColor(0.9, 0.9, 0.9);
-  for(int i = 0; i < triangles.size(); ++ i)
-  {
-    pcl::PointCloud<PointType> pointcloud,centers;
-    pointcloud.resize(3);
-    pointcloud.at(0).x = triangles.at(i).first.at(0)[0];
-    pointcloud.at(0).y = triangles.at(i).first.at(0)[1];
-    pointcloud.at(0).z = triangles.at(i).first.at(0)[2];
-    pointcloud.at(1).x = triangles.at(i).first.at(1)[0];
-    pointcloud.at(1).y = triangles.at(i).first.at(1)[1];
-    pointcloud.at(1).z = triangles.at(i).first.at(1)[2];
-    pointcloud.at(2).x = triangles.at(i).first.at(2)[0];
-    pointcloud.at(2).y = triangles.at(i).first.at(2)[1];
-    pointcloud.at(2).z = triangles.at(i).first.at(2)[2];
-    
-    centers.resize(1);
-    centers.at(0).x = triangles.at(i).second[0];
-    centers.at(0).y = triangles.at(i).second[1];
-    centers.at(0).z = triangles.at(i).second[2];
-    
-    stringstream s;
-    s << i;
-    pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color(pointcloud.makeShared(), 0, 0, 0);
-    mainview.addPointCloud (pointcloud.makeShared(), single_color, s.str()+"points");
-  
-    //pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color2(centers.makeShared(), 255, 0, 0);
-    //mainview.addPointCloud (centers.makeShared(), single_color2, s.str()+"centers");
-    mainview.addText3D(s.str(),centers.at(0),0.05,1,1,1,s.str()+"text");
-       
-  }
-  pcl::PointXYZ pt1, pt2;
+//   pcl::visualization::PCLVisualizer mainview("pointcloud");  
+//   mainview.setPosition(0,0);	
+//   mainview.setBackgroundColor(0.9, 0.9, 0.9);
+//   for(int i = 0; i < triangles.size(); ++ i)
+//   {
+//     pcl::PointCloud<PointType> pointcloud,centers;
+//     pointcloud.resize(3);
+//     pointcloud.at(0).x = triangles.at(i).first.at(0)[0];
+//     pointcloud.at(0).y = triangles.at(i).first.at(0)[1];
+//     pointcloud.at(0).z = triangles.at(i).first.at(0)[2];
+//     pointcloud.at(1).x = triangles.at(i).first.at(1)[0];
+//     pointcloud.at(1).y = triangles.at(i).first.at(1)[1];
+//     pointcloud.at(1).z = triangles.at(i).first.at(1)[2];
+//     pointcloud.at(2).x = triangles.at(i).first.at(2)[0];
+//     pointcloud.at(2).y = triangles.at(i).first.at(2)[1];
+//     pointcloud.at(2).z = triangles.at(i).first.at(2)[2];
+//     
+//     centers.resize(1);
+//     centers.at(0).x = triangles.at(i).second[0];
+//     centers.at(0).y = triangles.at(i).second[1];
+//     centers.at(0).z = triangles.at(i).second[2];
+//     
+//     stringstream s;
+//     s << i;
+//     pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color(pointcloud.makeShared(), 0, 0, 0);
+//     mainview.addPointCloud (pointcloud.makeShared(), single_color, s.str()+"points");
+//   
+//     //pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color2(centers.makeShared(), 255, 0, 0);
+//     //mainview.addPointCloud (centers.makeShared(), single_color2, s.str()+"centers");
+//     mainview.addText3D(s.str(),centers.at(0),0.05,1,1,1,s.str()+"text");
+//        
+//   }
+/*  pcl::PointXYZ pt1, pt2;
   pt1.x = 0;
   pt1.y = 0;
   pt1.z = 0;
@@ -178,10 +184,10 @@ void ShpereBlocks::TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen
   pt2.y = 1;
   pt2.z = 0; 
   mainview.addLine(pt1, pt2, "line");
-//   while (!mainview.wasStopped ())
-//   {
+  while (!mainview.wasStopped ())
+  {
     mainview.spinOnce ();
-//   } 	
+  } */	
 }
 
 

@@ -30,14 +30,20 @@ using namespace std;
 class ShpereBlocks
 {
   pcl::PointCloud<PointType> readPointCloud(string pointcloudFileName);
+  string sphereModel;
+  float edgelength;
 public:
   ShpereBlocks();
   float vectorNorm(Eigen::Vector3f vec);
   void TriangleBlocks(vector< pair < vector <Eigen::Vector3f>, Eigen::Vector3f > >& triangles);
-  
+  inline void SetupSphereModel(string spheremodel);
   ~ShpereBlocks();
 };
 
+void ShpereBlocks::SetupSphereModel(string spheremodel)
+{
+  this->sphereModel = spheremodel;
+}
 
 
 #endif // SHPEREBLOCKS_H

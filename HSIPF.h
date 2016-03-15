@@ -31,6 +31,7 @@ using namespace std;
 #include <omp.h>
 #include <pcl/common/pca.h>
 #include "ShpereBlocks.h"
+#include <time.h>
 
 struct HSIPFFeature
 {
@@ -44,6 +45,7 @@ class HSIPF
   pcl::PointCloud<PointType> pointcloud;
   pcl::PointCloud<PointType> keypoints;
   pcl::PointCloud<pcl::Normal> normal;
+  string sphereModel;
   
 public:
   HSIPF();
@@ -60,10 +62,12 @@ public:
   inline void HSIPFInputKeypoint(pcl::PointCloud<PointType> keypoints);
   inline void HSIPFInputNormal(pcl::PointCloud<pcl::Normal> normal);
   inline void HSIPFSetupAngle(float angle);
+  inline void HSIPFSetupSphereModel(string spheremodel);
   bool HSIPFCalculate(pcl::PointCloud< HSIPFFeature > & HSIPFDescriptor);
   double computeCloudResolution(const pcl::PointCloud<PointType>::ConstPtr& cloud);
   Eigen::Matrix<float, 3, 3> RotationAboutVector(Eigen::Vector3f rotationAxis, float theta);
   pcl::PointCloud<PointType> getBoundaryPoints(PointType keypoint);
+  pcl::PointCloud<PointType> getBoundaryPointsnew(PointType keypoint);
   virtual ~HSIPF();
   
 };
@@ -85,6 +89,12 @@ void HSIPF::HSIPFInputKeypoint(pcl::PointCloud< PointType > keypoints)
 {
   this->keypoints = keypoints;
 }
+
+void HSIPF::HSIPFSetupSphereModel(string spheremodel)
+{
+  this->sphereModel = spheremodel;
+}
+
 
 
 

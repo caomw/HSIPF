@@ -169,6 +169,34 @@ pcl::PointCloud< pcl::Normal > HSIPF::calculateNormal(pcl::PointCloud< PointType
   return normal;
 }
 
+pcl::PointCloud< PointType > HSIPF::getBoundaryPointsnew(PointType keypoint)
+{
+  pcl::PointCloud< PointType > boundaryPoints, newPointcloud;
+  pcl::PointCloud< PointType >::iterator iter, end;
+  newPointcloud = this->pointcloud;
+  Eigen::Vector3f keypointEig = keypoint.getArray3fMap();
+  Eigen::Vector3f keypointNormal = keypoint.getNormalVector3fMap();
+  for (iter = newPointcloud.begin(), end = newPointcloud.end(); iter != end; ++iter)
+  {      
+    PointType boundarypoint;
+    float mindis = 10e10;
+    Eigen::Vector3f boundaryPointsCand = iter->getArray3fMap();    
+    Eigen::Vector3f vectortmp = boundaryPointsCand - keypointEig;
+    Eigen::Vector3f pointNormal1 = iter->getNormalVector3fMap();
+    if(abs(VectorAngle(keypointNormal, pointNormal1) - this->BoundaryAngle) < 0.01)
+    {
+      boundarypoint.x = iter->getArray3fMap()(0);
+      boundarypoint.y = iter->getArray3fMap()(1);
+      boundarypoint.z = iter->getArray3fMap()(2);
+      boundarypoint.normal_x = iter->getNormalVector3fMap()(0);
+      boundarypoint.normal_y = iter->getNormalVector3fMap()(1);
+      boundarypoint.normal_z = iter->getNormalVector3fMap()(2);        
+      boundaryPoints.push_back(boundarypoint);
+    }      
+  }
+  return boundaryPoints;
+}
+
 pcl::PointCloud< PointType > HSIPF::getBoundaryPoints(PointType keypoint)
 {
   pcl::PointCloud< PointType > boundaryPoints, newPointcloud;
@@ -233,23 +261,32 @@ pcl::PointCloud< PointType > HSIPF::getBoundaryPoints(PointType keypoint)
 
 bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 {
-  pcl::visualization::PCLVisualizer mainview("pointcloud");  
-  mainview.setPosition(0,0);	
-  mainview.setBackgroundColor(0.9, 0.9, 0.9);
-  pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color(this->pointcloud.makeShared(), 108, 166, 205);
-  mainview.addPointCloud (this->pointcloud.makeShared(), single_color, "newpointcloud1");
+//   pcl::visualization::PCLVisualizer mainview("pointcloud");  
+//   mainview.setPosition(0,0);	
+//   mainview.setBackgroundColor(0.9, 0.9, 0.9);
+//   pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color(this->pointcloud.makeShared(), 108, 166, 205);
+//   mainview.addPointCloud (this->pointcloud.makeShared(), single_color, "newpointcloud1");
   Eigen::Vector3f pt1, pt2;
+  
   
   vector< pair < vector <Eigen::Vector3f>, Eigen::Vector3f > >  trianglePoints, newtrianglePoints;
   ShpereBlocks shpereblock;
+  shpereblock.SetupSphereModel(this->sphereModel);
   shpereblock.TriangleBlocks(trianglePoints);  
   newtrianglePoints = trianglePoints;
-  float alpha = PI/30;
-  int K = PI/3/alpha;  
+  float alpha = PI/DIM;
+  int K ;
+  if(this->sphereModel == "./sphere.ply")
+    K = int(PI/6/alpha);  
+  if(this->sphereModel == "./spheresmall.ply")
+    K = int(PI/2/alpha);  
   for(int i = 0; i < this->keypoints.size(); ++i)
-  {
+  {   
+    clock_t a,b;
+    a = time(NULL);
     vector< pcl::PointCloud<PointType> > pointsinTrianle(trianglePoints.size() * K);   //boundary points in each triangle
-    pcl::PointCloud< PointType > boundaryPoints = getBoundaryPoints(keypoints.at(i));    
+    pcl::PointCloud< PointType > boundaryPoints = getBoundaryPointsnew(keypoints.at(i));  
+
     Eigen::Vector3f SO;
     SO << 0, 1, 0;
     Eigen::Vector3f PN = this->normal.at(i).getNormalVector3fMap();
@@ -262,11 +299,13 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
     Eigen::Vector3f translation = keypoints.at(i).getArray3fMap();
     //omp_set_num_threads(2);
     //#pragma omp parallel for
+
     for(int j = 0; j < K; ++j)
     {
       stringstream sk;
       sk << j;
       Eigen::Matrix<float, 3, 3> roMatAboutPN = RotationAboutVector(PN, j*alpha);
+
       for(int indt = 0; indt < trianglePoints.size(); ++indt)
       {
 	newtrianglePoints.at(indt).first.at(0) = (roMatAboutPN*roMatAboutSOcrossPN*trianglePoints.at(indt).first.at(0)+translation);
@@ -274,23 +313,22 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 	newtrianglePoints.at(indt).first.at(2) = (roMatAboutPN*roMatAboutSOcrossPN*trianglePoints.at(indt).first.at(2)+translation);
 	newtrianglePoints.at(indt).second = roMatAboutPN*roMatAboutSOcrossPN*trianglePoints.at(indt).second+translation;
 	
-	pt1 = translation;
-	pt2 << 0, 1, 0;
-	pt2 = roMatAboutPN*roMatAboutSOcrossPN*pt2+translation;
-	
-	stringstream sindt;
-	sindt << indt;
-	pcl::PointXYZ ppt1, ppt2;
-	ppt1.x = pt1(0);
-	ppt1.y = pt1(1);
-	ppt1.z = pt1(2);
-	ppt2.x = pt2(0);
-	ppt2.y = pt2(1);
-	ppt2.z = pt2(2);
-	mainview.addLine(ppt1, ppt2, sk.str()+sindt.str()+"line");      
+// 	pt1 = translation;
+// 	pt2 << 0, 1, 0;
+// 	pt2 = roMatAboutPN*roMatAboutSOcrossPN*pt2+translation;
+// 	
+// 	stringstream sindt;
+// 	sindt << indt;
+// 	pcl::PointXYZ ppt1, ppt2;
+// 	ppt1.x = pt1(0);
+// 	ppt1.y = pt1(1);
+// 	ppt1.z = pt1(2);
+// 	ppt2.x = pt2(0);
+// 	ppt2.y = pt2(1);
+// 	ppt2.z = pt2(2);
+	//mainview.addLine(ppt1, ppt2, sk.str()+sindt.str()+"line");      
       }
-       
-      for(int indn = 0; indn < newtrianglePoints.size(); ++ indn)
+      /*for(int indn = 0; indn < newtrianglePoints.size(); ++ indn)
       {
 	pcl::PointCloud<PointType> pointcloudtmp,centers;
 	pointcloudtmp.resize(3);
@@ -314,8 +352,7 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 	pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color(pointcloudtmp.makeShared(), 0, 0, 0);
 	mainview.addPointCloud (pointcloudtmp.makeShared(), single_color, sk.str()+sindn.str()+"points");
 	mainview.addText3D(sindn.str(),centers.at(0),0.05,1,1,1,sk.str()+sindn.str()+"text");	
-      }  
-      
+      }*/  
       for(int indn = 0; indn < newtrianglePoints.size(); ++ indn)
       {
 	Eigen::Vector3f point1, point2, point3;
@@ -341,7 +378,7 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 	    pointsinTrianle.at(j*trianglePoints.size() + indn).push_back(boundaryPoints.at(indb));
 	  }
 	}	
-      }      
+      }
     }
 //     while (!mainview.wasStopped ())
 //     {
@@ -400,7 +437,7 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
       /*while (!view2.wasStopped ())
       {
 	view2.spinOnce ();
-      }  */    
+      }*/      
     }
     for(int indhis = 0; indhis < DIM; ++indhis)
     {
@@ -410,10 +447,12 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
     for(int indhis = 0; indhis < DIM; ++indhis)
     {
       his.descriptor.histogram[indhis]/=hisNorm;
-      cout << his.descriptor.histogram[indhis] << " ";
+      //cout << his.descriptor.histogram[indhis] << " ";
     }
-    cout << endl;
+    //cout << endl;
     HSIPFDescriptor.push_back(his);
-    exit(1);
+    b = time(NULL);
+    cout << "seconds: " << float(b - a) << endl;
+    //exit(1);
   }
 }
