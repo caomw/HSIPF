@@ -1,5 +1,6 @@
 #include <iostream>
 #include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/registration/correspondence_estimation.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/surface/gp3.h>
 #include "HSIPF.h"
@@ -31,6 +32,7 @@ int main(int argc, char ** argv)
   for(int i = 0; i < pointcloud2.size(); ++i)
   {
     pointcloud2.at(i).x *= 1.5;
+    pointcloud2.at(i).x += 0.5;
     pointcloud2.at(i).y *= 1.5;
     pointcloud2.at(i).z *= 1.5;
     pointcloudnormal2.at(i).normal_x = pointcloud2.at(i).normal_x;
@@ -61,31 +63,104 @@ int main(int argc, char ** argv)
   cout << keypoints1.size() << endl;
   
   pcl::console::print_highlight ("Downsampling...\n");
-  leaf = 0.01;
+  leaf = 0.02;
   grid.setLeafSize (leaf, leaf, leaf);
   grid.setInputCloud (pointcloud2.makeShared());
   grid.filter (keypoints2);
   cout << keypoints2.size() << endl;
   
-  pcl::PointCloud< HSIPFFeature > HSIPFDescriptor1;
-  hsipf.HSIPFInputNormal(pointcloudnormal1);
-  hsipf.HSIPFInputPointCloud(pointcloud1);
-  hsipf.HSIPFInputKeypoint(keypoints1);
-  hsipf.HSIPFSetupAngle(PI/2);
-  hsipf.HSIPFSetupSphereModel("./spheresmall.ply");
-  //hsipf.HSIPFSetupSphereModel("./sphere.ply");
-  hsipf.HSIPFCalculate(HSIPFDescriptor1);
+  pcl::visualization::PCLVisualizer keypoints("keypoints");  
+  keypoints.setPosition(0,0);	
+  keypoints.setBackgroundColor(0.9, 0.9, 0.9);
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> keypoints1color(keypoints1.makeShared(), 108, 166, 205);
+  keypoints.addPointCloud (keypoints1.makeShared(), keypoints1color, "keypoints1");  
+  pcl::PointCloud< PointType > onekeypoint;
+  onekeypoint.push_back(pointcloud1.at(0));
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> keypoints2color(keypoints2.makeShared(), 255, 0, 0);
+  keypoints.addPointCloud (keypoints2.makeShared(), keypoints2color, "keypoints2"); 
+  while (!keypoints.wasStopped ())
+  {
+    keypoints.spinOnce ();
+  } 	
+    
   
-  pcl::PointCloud< HSIPFFeature > HSIPFDescriptor2;
-  hsipf.HSIPFInputNormal(pointcloudnormal2);
-  hsipf.HSIPFInputPointCloud(pointcloud2);
-  hsipf.HSIPFInputKeypoint(keypoints2);
-  hsipf.HSIPFSetupAngle(PI/2);
-  hsipf.HSIPFSetupSphereModel("./spheresmall.ply");
-  //hsipf.HSIPFSetupSphereModel("./sphere.ply");
-  hsipf.HSIPFCalculate(HSIPFDescriptor2);
+  pcl::PointCloud< HSIPFFeature30 > HSIPFDescriptor1;
   
   
+//   hsipf.HSIPFInputNormal(pointcloudnormal1);
+//   hsipf.HSIPFInputPointCloud(pointcloud1);
+//   hsipf.HSIPFInputKeypoint(keypoints1);
+//   hsipf.HSIPFSetupAngle(PI/2);
+//   hsipf.HSIPFSetupSphereModel("./spheresmall.ply");
+//   //hsipf.HSIPFSetupSphereModel("./sphere.ply");
+//   hsipf.HSIPFCalculate(HSIPFDescriptor1);
+//   hsipf.saveHSIPFDescriptor(HSIPFDescriptor1, "feature1.txt");
+  
+  pcl::PointCloud< HSIPFFeature30 > HSIPFDescriptor2;
+  
+  
+//   hsipf.HSIPFInputNormal(pointcloudnormal2);
+//   hsipf.HSIPFInputPointCloud(pointcloud2);
+//   hsipf.HSIPFInputKeypoint(keypoints2);
+//   hsipf.HSIPFSetupAngle(PI/2);
+//   hsipf.HSIPFSetupSphereModel("./spheresmall.ply");
+//   //hsipf.HSIPFSetupSphereModel("./sphere.ply");
+//   hsipf.HSIPFCalculate(HSIPFDescriptor2);  
+//   hsipf.saveHSIPFDescriptor(HSIPFDescriptor2, "feature2.txt");
+//   exit(1);
+  
+  hsipf.loadHSIPFDescriptor(HSIPFDescriptor1, "feature1.txt");
+  hsipf.loadHSIPFDescriptor(HSIPFDescriptor2, "feature2.txt");
+
+  hsipf.HSIPFSetupCorresSourceFeature(HSIPFDescriptor1);
+  hsipf.HSIPFSetupCorresTargetFeature(HSIPFDescriptor2);
+  pcl::Correspondences all_correspondences;
+  //hsipf.determineCorrespondences(all_correspondences);   
+  hsipf.determineCorrespondences2(all_correspondences);
+  cout << "Found "<<all_correspondences.size()<<" total feature correspondences.\n";
+  
+  
+  pcl::visualization::PCLVisualizer viewer3("HSIPF corresponding");  
+  viewer3.setBackgroundColor(0.9, 0.9, 0.9);
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color5(pointcloud1.makeShared(), 108, 166, 205);
+  viewer3.addPointCloud (pointcloud1.makeShared(), single_color5, "newpointcloud1");
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> single_color6(pointcloud2.makeShared(), 108, 166, 205);
+  viewer3.addPointCloud (pointcloud2.makeShared(), single_color6, "newpointcloud2");
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> single_colorkeypoint1(keypoints1.makeShared(), 255, 0, 0);
+  viewer3.addPointCloud (keypoints1.makeShared(), single_colorkeypoint1, "keypoints1");	
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> single_colorkeypoint2(keypoints2.makeShared(), 255, 0, 0);
+  viewer3.addPointCloud (keypoints2.makeShared(), single_colorkeypoint2, "keypoints2");	
+  viewer3.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "keypoints1");
+  viewer3.setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "keypoints2");
+  viewer3.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "newpointcloud1");
+  viewer3.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "newpointcloud2");	
+  viewer3.setSize (1280, 600);
+  viewer3.setPosition(0,0);			
+  viewer3.resetCameraViewpoint();
+  viewer3.resetCamera();
+  for (size_t i = 0; i < all_correspondences.size (); ++i)
+  {
+    pcl::PointXYZ tmppoint1;
+    tmppoint1.x = keypoints1.at(all_correspondences[i].index_query).x;
+    tmppoint1.y = keypoints1.at(all_correspondences[i].index_query).y;
+    tmppoint1.z = keypoints1.at(all_correspondences[i].index_query).z; 
+
+    pcl::PointXYZ tmppoint2;
+    tmppoint2.x = keypoints2.at(all_correspondences[i].index_match).x;
+    tmppoint2.y = keypoints2.at(all_correspondences[i].index_match).y;
+    tmppoint2.z = keypoints2.at(all_correspondences[i].index_match).z;
+    stringstream ss;
+    ss << i;
+    string sss;
+    ss >> sss;
+  	
+    viewer3.addLine<pcl::PointXYZ>(tmppoint1, tmppoint2, sss);
+  }
+  cout << "good correspondences: " << all_correspondences.size() << endl;
+  while (!viewer3.wasStopped ())
+  {
+    viewer3.spinOnce ();
+  }
   
   /**
    *   \note check boundary points 

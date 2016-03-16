@@ -259,7 +259,7 @@ pcl::PointCloud< PointType > HSIPF::getBoundaryPoints(PointType keypoint)
 }
 
 
-bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
+bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature30 >& HSIPFDescriptor)
 {
 //   pcl::visualization::PCLVisualizer mainview("pointcloud");  
 //   mainview.setPosition(0,0);	
@@ -387,11 +387,11 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 
     
     pcl::PointCloud<PointType> allpoints;
-    HSIPFFeature his;
+    HSIPFFeature30 his;
     float hisNorm = 0;
     for(int indhis = 0; indhis < DIM; ++indhis)
     {
-      his.descriptor.histogram[indhis] = 0;
+      his.sipfhis[indhis] = 0;
     }
     for(int indpt = 0; indpt < pointsinTrianle.size(); ++indpt)
     {
@@ -421,8 +421,10 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
 	{
 	  float AngV1On = VectorAngle(V1,keypointNormal);
 	  float AngV2On = VectorAngle(V2,keypointNormal);
-	  his.descriptor.histogram[int(AngV1On/alpha)] ++;
-	  his.descriptor.histogram[int(AngV2On/alpha)] ++;
+	  float AngV3On = VectorAngle(V3,keypointNormal);
+	  his.sipfhis[int(AngV1On/alpha)] ++;
+	  his.sipfhis[int(AngV2On/alpha)] ++;
+	  his.sipfhis[int(AngV3On/alpha)] ++;
 	}
 	
 	stringstream sindn;
@@ -441,18 +443,145 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature >& HSIPFDescriptor)
     }
     for(int indhis = 0; indhis < DIM; ++indhis)
     {
-      hisNorm += his.descriptor.histogram[indhis] * his.descriptor.histogram[indhis];      
+      hisNorm += his.sipfhis[indhis] * his.sipfhis[indhis];      
     }
     hisNorm = sqrt(hisNorm);
     for(int indhis = 0; indhis < DIM; ++indhis)
     {
-      his.descriptor.histogram[indhis]/=hisNorm;
-      //cout << his.descriptor.histogram[indhis] << " ";
+      his.sipfhis[indhis]/=hisNorm;
+      //his.sipfhis[indhis] = exp(his.sipfhis[indhis]);
+      //cout << his.sipfhis[indhis] << " ";
     }
     //cout << endl;
     HSIPFDescriptor.push_back(his);
     b = time(NULL);
-    cout << "seconds: " << float(b - a) << endl;
+    cout << i << " seconds: " << float(b - a) << endl;
     //exit(1);
+  }
+}
+
+
+bool HSIPF::determineCorrespondences(pcl::Correspondences& all_correspondences)
+{  
+  pcl::registration::CorrespondenceEstimation<HSIPFFeature30, HSIPFFeature30> est;
+  est.setInputSource (this->HSIPFDescriptorSource.makeShared());
+  est.setInputTarget (this->HSIPFDescriptorTarget.makeShared());
+  // Determine all reciprocal correspondences
+  est.determineReciprocalCorrespondences (all_correspondences);
+  return true;
+}
+
+bool HSIPF::determineCorrespondences2(pcl::Correspondences& all_correspondences)
+{  
+  vector< vector<float> > querydata;		
+  for(int j = 0; j < HSIPFDescriptorSource.size(); j ++)
+  {
+	  vector<float> tmp1; 
+	  for(int idx = 0; idx < DIM; idx ++)
+	  {
+		  tmp1.push_back(HSIPFDescriptorSource.at(j).sipfhis[idx]);
+		  //cout << feature1.at(j).descriptor.histogram[idx] << " ";
+	  }
+	  //cout << endl;
+	  querydata.push_back(tmp1);
+  }	    
+
+  vector< vector<float> > traindata;	
+  for(int j = 0; j < HSIPFDescriptorTarget.size(); j ++)
+  {
+	  vector<float> tmp1; 
+	  for(int idx = 0; idx < DIM; idx ++)
+	  {
+		  tmp1.push_back(HSIPFDescriptorTarget.at(j).sipfhis[idx]);
+		  //cout << feature2.at(j).descriptor.histogram[idx] << " ";
+	  }
+	  //cout << endl;
+	  traindata.push_back(tmp1);
+  }
+
+  OverWrapRatio overwrapratio1;
+  vector<correspondingPair> corres;	
+  vector<float> distances;
+  overwrapratio1.ANNestimation1(DIM, 0, traindata, querydata, corres, distances);
+
+  if(corres.size() <=3)
+  {
+	  cerr << "corres.size <= 3, system exit!!"<< endl;
+	  exit(1);
+  }
+
+  double max_dist = 0; double min_dist = 1000000;
+  //-- Quick calculation of max and min distances between keypoints
+  for( int i = 0; i < distances.size(); i++ )
+  {
+	  
+	  if( distances.at(i) < min_dist )
+		  min_dist = distances.at(i);
+	  if( distances.at(i) > max_dist ) 
+		  max_dist = distances.at(i);
+  }
+  vector<correspondingPair> good_corres;
+
+  cout << "min_dist: "<< min_dist << " max_dist: " << max_dist << endl;
+  float mintimes = 1000;
+  if (min_dist*mintimes>max_dist/2)
+  {
+	  mintimes = max_dist/(2*min_dist);
+  }
+  for( int i = 0; i < distances.size(); i++ )
+  { 
+	  if( distances.at(i) < mintimes*(min_dist+1e-6) )
+	  {
+		  good_corres.push_back(corres.at(i)); 	
+		  pcl::Correspondence tmpcor;
+		  tmpcor.index_query = corres.at(i).indexInTraining;
+		  tmpcor.index_match = corres.at(i).indexInTest;
+		  all_correspondences.push_back(tmpcor);
+	  }
+  }
+  return true;
+}
+
+bool HSIPF::saveHSIPFDescriptor(pcl::PointCloud< HSIPFFeature30 > HSIPFDescriptor, string filename)
+{
+  ofstream allfeatures (filename.c_str());
+  for(int i = 0; i < HSIPFDescriptor.size(); ++i)
+  {
+    cerr << HSIPFDescriptor.at(i) << endl;
+    allfeatures << HSIPFDescriptor.at(i) << endl;
+  }
+  allfeatures.close();
+  return true;
+}
+
+bool HSIPF::loadHSIPFDescriptor(pcl::PointCloud< HSIPFFeature30 >& HSIPFDescriptor, string filename)
+{
+  ifstream featureFile(filename.c_str());
+  if (featureFile.is_open())
+  {    
+    string line;
+    while ( featureFile.good() )
+    {	
+      getline (featureFile,line);     
+      string buf; // Have a buffer string
+      stringstream ss(line); // Insert the string into a stream
+      
+      HSIPFFeature30 tmpfea;
+      int position = 0;
+      while (ss >> buf)
+      {
+	tmpfea.sipfhis[position] = atof(buf.c_str());
+	position ++;
+      }      
+      if(line != "")
+	HSIPFDescriptor.push_back(tmpfea);
+    }
+    featureFile.close();
+    return true;
+  }
+  else
+  {
+    cerr << "Unable to open file: " << filename << endl;
+    return false;
   }
 }
