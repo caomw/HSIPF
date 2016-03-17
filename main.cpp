@@ -31,10 +31,10 @@ int main(int argc, char ** argv)
   pointcloudnormal2.resize(pointcloud2.size()); 
   for(int i = 0; i < pointcloud2.size(); ++i)
   {
-    pointcloud2.at(i).x *= 1.5;
+    pointcloud2.at(i).x *= 1.0;
     pointcloud2.at(i).x += 0.5;
-    pointcloud2.at(i).y *= 1.5;
-    pointcloud2.at(i).z *= 1.5;
+    pointcloud2.at(i).y *= 1.0;
+    pointcloud2.at(i).z *= 1.0;
     pointcloudnormal2.at(i).normal_x = pointcloud2.at(i).normal_x;
     pointcloudnormal2.at(i).normal_y = pointcloud2.at(i).normal_y;
     pointcloudnormal2.at(i).normal_z = pointcloud2.at(i).normal_z;
@@ -85,6 +85,7 @@ int main(int argc, char ** argv)
     
   
   pcl::PointCloud< HSIPFFeature30 > HSIPFDescriptor1;
+  pcl::PointCloud< HSIPFFeature30 > HSIPFDescriptor2;
   
   
 //   hsipf.HSIPFInputNormal(pointcloudnormal1);
@@ -95,10 +96,7 @@ int main(int argc, char ** argv)
 //   //hsipf.HSIPFSetupSphereModel("./sphere.ply");
 //   hsipf.HSIPFCalculate(HSIPFDescriptor1);
 //   hsipf.saveHSIPFDescriptor(HSIPFDescriptor1, "feature1.txt");
-  
-  pcl::PointCloud< HSIPFFeature30 > HSIPFDescriptor2;
-  
-  
+//   
 //   hsipf.HSIPFInputNormal(pointcloudnormal2);
 //   hsipf.HSIPFInputPointCloud(pointcloud2);
 //   hsipf.HSIPFInputKeypoint(keypoints2);

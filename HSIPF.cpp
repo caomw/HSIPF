@@ -441,17 +441,17 @@ bool HSIPF::HSIPFCalculate(pcl::PointCloud< HSIPFFeature30 >& HSIPFDescriptor)
 	view2.spinOnce ();
       }*/      
     }
-    for(int indhis = 0; indhis < DIM; ++indhis)
-    {
-      hisNorm += his.sipfhis[indhis] * his.sipfhis[indhis];      
-    }
-    hisNorm = sqrt(hisNorm);
-    for(int indhis = 0; indhis < DIM; ++indhis)
-    {
-      his.sipfhis[indhis]/=hisNorm;
-      //his.sipfhis[indhis] = exp(his.sipfhis[indhis]);
-      //cout << his.sipfhis[indhis] << " ";
-    }
+//     for(int indhis = 0; indhis < DIM; ++indhis)
+//     {
+//       hisNorm += his.sipfhis[indhis] * his.sipfhis[indhis];      
+//     }
+//     hisNorm = sqrt(hisNorm);
+//     for(int indhis = 0; indhis < DIM; ++indhis)
+//     {
+//       his.sipfhis[indhis]/=hisNorm;
+//       //his.sipfhis[indhis] = exp(his.sipfhis[indhis]);
+//       //cout << his.sipfhis[indhis] << " ";
+//     }
     //cout << endl;
     HSIPFDescriptor.push_back(his);
     b = time(NULL);
@@ -474,12 +474,12 @@ bool HSIPF::determineCorrespondences(pcl::Correspondences& all_correspondences)
 bool HSIPF::determineCorrespondences2(pcl::Correspondences& all_correspondences)
 {  
   vector< vector<float> > querydata;		
-  for(int j = 0; j < HSIPFDescriptorSource.size(); j ++)
+  for(int j = 0; j < HSIPFDescriptorTarget.size(); j ++)
   {
 	  vector<float> tmp1; 
 	  for(int idx = 0; idx < DIM; idx ++)
 	  {
-		  tmp1.push_back(HSIPFDescriptorSource.at(j).sipfhis[idx]);
+		  tmp1.push_back(HSIPFDescriptorTarget.at(j).sipfhis[idx]);
 		  //cout << feature1.at(j).descriptor.histogram[idx] << " ";
 	  }
 	  //cout << endl;
@@ -487,12 +487,12 @@ bool HSIPF::determineCorrespondences2(pcl::Correspondences& all_correspondences)
   }	    
 
   vector< vector<float> > traindata;	
-  for(int j = 0; j < HSIPFDescriptorTarget.size(); j ++)
+  for(int j = 0; j < HSIPFDescriptorSource.size(); j ++)
   {
 	  vector<float> tmp1; 
 	  for(int idx = 0; idx < DIM; idx ++)
 	  {
-		  tmp1.push_back(HSIPFDescriptorTarget.at(j).sipfhis[idx]);
+		  tmp1.push_back(HSIPFDescriptorSource.at(j).sipfhis[idx]);
 		  //cout << feature2.at(j).descriptor.histogram[idx] << " ";
 	  }
 	  //cout << endl;
